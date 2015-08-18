@@ -155,7 +155,7 @@ static uint32_t timer;
 
 // Domain name of remote webservers - leave blank if posting to IP address 
 #ifdef POST2XIVELY
-char websitepac[] PROGMEM = "api.xively.com";
+char xivelyhost[] = "api.xively.com";
 static byte xivelyip[] = { 
   0,0,0,0 };
 static uint16_t xivelyport = 80;
@@ -194,6 +194,7 @@ static void callback_pac (byte status, word off, word len) {		// callback functi
 
   get_header_line(1,off);      // Get the http status code
 #ifdef DEBUG
+  Serial.println("HTTP status code from Xively: ");
   Serial.println(line_buf);    // Print out the http status code
 #endif
   //-----------------------------------------------------------------------------
@@ -369,7 +370,7 @@ void loop () {
 #ifdef UNO
     wdt_disable();
 #endif 
-    dns_status_pac = ether.dnsLookup(websitepac);    // Attempt DNS lookup
+    dns_status_pac = ether.dnsLookup(xivelyhost);    // Attempt DNS lookup
 #ifdef UNO
     wdt_enable(WDTO_8S);
 #endif
@@ -539,7 +540,7 @@ void loop () {
     Serial.println(str.buf); 
     Serial.println(request_attempt);   
 #endif    // Print final json string to terminal
-    ether.httpPost(PSTR(FEED_PAC), websitepac, PSTR(APIKEY_PAC), str.buf, callback_pac);	// Use POST to send string to Xively
+    ether.httpPost(PSTR(FEED_PAC), xivelyhost, PSTR(APIKEY_PAC), str.buf, callback_pac);	// Use POST to send string to Xively
     // Wait for reply
     tReply.set(HTTP_TIMEOUT);
 #ifdef UNO
