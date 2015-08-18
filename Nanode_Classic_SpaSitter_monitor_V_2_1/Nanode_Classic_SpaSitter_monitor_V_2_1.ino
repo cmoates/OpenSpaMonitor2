@@ -32,21 +32,11 @@ SpaSitter 2.0
 
 #define HTTP_TIMEOUT 10000
 
-//#define POST2EMONCMS	// uncomment to send to emoncms
-//#define POST2LOCAL		// uncomment to send to local emoncms
-#define POST2PACHUBE	// uncomment to send to pachube
 
 #include <Wire.h>
-//#include <RTClib.h>
-//RTC_Millis RTC;
 
 #include <JeeLib.h>	     // https://github.com/jcw/jeelib
 #include <avr/wdt.h>
-
-
-//#define MYNODE 16            // node ID 30 reserved for base station
-//#define freq RF12_868MHZ     // frequency
-//#define group 0xb3           // network group 
 
 // The RF12 data payload - a neat way of packaging data when sending via RF - JeeLabs
 // must be same structure as transmitted from emonTx
@@ -127,23 +117,6 @@ NanodeMAC mac( mymac );
 byte Ethernet::buffer[600];
 static uint32_t timer;
 
-//Domain name of remote webservers - leave blank if posting to IP address 
-#ifdef POST2EMONCMS
-char websiteemon[] PROGMEM = "vis.openenergymonitor.org";		// domain name of emoncms
-static byte emonip[] = { 
-  0,0,0,0 };
-static uint16_t emonport = 80;
-#define APIKEY_EMON "/emoncms3/api/post.json?apikey=xxxx&json="	// Set xxxx to your emoncms write API key
-#endif
-
-#ifdef POST2LOCAL
-char websitelocal[] PROGMEM = "";
-static byte hislocalip[] = { 
-  192,168,1,105 };  // set it to local IP of emoncms
-static uint16_t localport = 8888;
-#define APIKEY_LOCAL "/emoncms3/api/post.json?apikey=yyyy&json="		// Set yyyy to your local emoncms write API key
-#endif
-
 #ifdef POST2PACHUBE   // Pachube is Cosm.com
 const char websitepac[] PROGMEM = "api.pachube.com";
 static byte pachubeip[] = { 
@@ -188,6 +161,7 @@ static void callback_pac (byte status, word off, word len) {		// callback functi
 
   get_header_line(1,off);      // Get the http status code
 #ifdef DEBUG
+  Serial.print("HTTP Status Code: ");
   Serial.println(line_buf);    // Print out the http status code
 #endif
   //-----------------------------------------------------------------------------
@@ -213,93 +187,9 @@ static void format_pac_json (void) {		// function to format data to send to pach
   str.print("Bat,");    
   str.println(emontx.battery);
   str.print("\0");
-}
-#endif
-
-#ifdef POST2EMONCMS
-static void callback_emon (byte status, word off, word len) {		// callback function for emoncms
-
-  get_header_line(1,off);      // Get the http status code
-#ifdef DEBUG
-  Serial.println(line_buf);    // Print out the http status code
-#endif
-  //-----------------------------------------------------------------------------
-  get_reply_data(off);
-  //#ifdef DEBUG
-  //Serial.println(line_buf);
-  //#endif
-  if (strcmp(line_buf,"ok")) {
-#ifdef DEBUG
-    Serial.println("ok received from emoncms");
-#endif
-    httpHaveReply = 1;
-    request_attempt = 0;
-    error=0;
-  }
-}
-#endif
-
-#if defined(POST2EMONCMS) || defined(POST2LOCAL)		// Function to format json string for emoncms
-static void format_emon_json (void) {
-  // JSON creation: JSON sent are of the format: {key1:value1,key2:value2} and so on
-  str.reset();                                                 // Reset json string    
-  str.print("{rf_fail1:0");                                     // RF recieved so no failure
-  str.print(",status1:");    
-  str.print(emontx.boardStatus);
-  str.print(",ct1:");    
-  str.print(emontx.ct1);              // Add CT 1 reading  - un-comment if needed
-  str.print(",battery1:");    
-  str.print(emontx.battery);
-  str.print("}\0");
-}
-#endif
-
-#ifdef POST2LOCAL
-static void callback_local (byte status, word off, word len) {	// callback function for local emoncms (can use the same callback for local and remote emoncms)
-
-  get_header_line(1,off);      // Get the http status code
-#ifdef DEBUG
-  Serial.println(line_buf);    // Print out the http status code
-#endif
-  get_header_line(2,off);      // Get the date and time from the header
-#ifdef DEBUG
-  Serial.println(line_buf);    // Print out the date and time
-#endif
-
-    // Decode date time string to get integers for hour, min, sec, day
-  // We just search for the characters and hope they are in the right place
-  /*
-	char val[1];
-   val[0] = line_buf[23]; val[1] = line_buf[24];
-   int hour = atoi(val);
-   val[0] = line_buf[26]; val[1] = line_buf[27];
-   int mins = atoi(val);
-   val[0] = line_buf[29]; val[1] = line_buf[30];
-   int sec = atoi(val);
-   val[0] = line_buf[11]; val[1] = line_buf[12];
-   int day = atoi(val);
-   
-   // Set the RTC
-   RTC.adjust(DateTime(2012, 2, day, hour, mins, sec));
-   DateTime now = RTC.now();
-   */
-  //-----------------------------------------------------------------------------
-  get_reply_data(off);
-  //#ifdef DEBUG
-  //Serial.println(line_buf);
-  //#endif
-  if (strcmp(line_buf,"ok")) {
-#ifdef DEBUG
-    Serial.println("ok received from local emon");
-#endif
-    httpHaveReply = 1;
-    request_attempt = 0;
-    error=0;
-  }
-}
-
-static void format_local_json (void) {		// Function to format json string for local emoncms (Use same format than remote cms in this example)
-  format_emon_json();
+  #ifdef DEBUG
+    Serial.println(str);
+  #endif
 }
 #endif
 
@@ -318,9 +208,9 @@ void setup () {
   digitalWrite(redLED,HIGH);                        //turn off redLED
 #ifdef DEBUG
   Serial.begin(9600);
-  Serial.println("\n[multi webClient]");
+  Serial.println("\n[OpenSpaMonitor starting up]");
   //sensors.begin(); // IC Default 9 bit. If you have troubles consider upping it 12. Ups the delay giving the IC more time to process the temperature measurement
-Serial.print("Locating devices...");
+  Serial.print("Locating 1Wire devices...");
   sensors.begin();
   Serial.print("Found ");
   Serial.print(sensors.getDeviceCount(), DEC);
@@ -432,31 +322,6 @@ void loop () {
   //-----------------------------------------------------------------------------------
   // Get server addresses via DNS
   //-----------------------------------------------------------------------------------
-#ifdef POST2EMONCMS			// get IP of remote emoncms, and store it
-  if (dhcp_status && !dns_status_emon){
-#ifdef UNO
-    wdt_disable();
-#endif 
-    dns_status_emon = ether.dnsLookup(websiteemon);    // Attempt DNS lookup
-#ifdef UNO
-    wdt_enable(WDTO_8S);
-#endif
-#ifdef DEBUG
-    Serial.print("DNS status emon: ");             // print
-    Serial.println(dns_status_emon);               // dns status
-#endif
-    if (dns_status_emon){
-      ether.copyIp(emonip, ether.hisip); 		// Store IP
-#ifdef DEBUG
-      ether.printIp("SRV emoncms: ", emonip);         // server ip
-#endif
-    } 
-    else { 
-      error=1; 
-    }  
-  }
-#endif
-
 #ifdef POST2PACHUBE			// get IP of pachube, and store it
   if (dhcp_status && !dns_status_pac){
 #ifdef UNO
@@ -519,84 +384,7 @@ void loop () {
     // Example of posting to emoncms v3 demo account goto http://vis.openenergymonitor.org/emoncms3 
     request_attempt ++;
     
-#ifdef POST2EMONCMS											// Send to emoncms
-    while (ether.packetLoop(ether.packetReceive()) != 0) {
-    }	// wait for ethernet buffer to be free
-    ether.copyIp(ether.hisip, emonip); 						// set destination IP address
-    ether.hisport = emonport;									// set destination port
-    httpHaveReply = 0;										// reset reply flag
-    if(RFerror)												// format string to send
-    {
-      str.reset();
-      str.print("{rf_fail1:1}");
-    }
-    else
-    {
-      format_emon_json();
-    }
-#ifdef DEBUG 
-    Serial.println(str.buf); 
-    Serial.println(request_attempt);   
-#endif    // Print final json string to terminal
-    ether.browseUrl(PSTR(APIKEY_EMON),str.buf, websiteemon, callback_emon);	// Use GET to send string to pachube      // Wait for reply
-    tReply.set(HTTP_TIMEOUT);
-#ifdef UNO
-    wdt_disable();
-#endif 
-    while (!httpHaveReply) {
-      ether.packetLoop(ether.packetReceive());
-      if (tReply.poll()) {
-        error=1;        // network timeout
-        break;
-      }
-    }
-#ifdef UNO
-    wdt_enable(WDTO_8S);
-#endif
-    ether.packetLoop(ether.packetReceive());
-#endif
-
-#ifdef POST2LOCAL
-    while (ether.packetLoop(ether.packetReceive()) != 0) {
-    }
-    ether.copyIp(ether.hisip, hislocalip); 
-    ether.hisport = localport;
-    httpHaveReply = 0;
-    if(RFerror)
-    {
-      str.reset();
-      str.print("{rf_fail1:1}");
-    }
-    else
-    {
-      format_local_json();
-    }
-#ifdef DEBUG 
-    Serial.println(str.buf); 
-    Serial.println(request_attempt);   
-#endif    // Print final json string to terminal
-    ether.browseUrl(PSTR(APIKEY_LOCAL),str.buf, websitelocal, callback_local);
-    // Wait for reply
-    tReply.set(HTTP_TIMEOUT);
-#ifdef UNO
-    wdt_disable();
-#endif 
-    while (!httpHaveReply) {
-      ether.packetLoop(ether.packetReceive());
-      if (tReply.poll()) {
-        error=1;        // network timeout
-        break;
-      }
-    }
-#ifdef UNO
-    wdt_enable(WDTO_8S);
-#endif
-    ether.packetLoop(ether.packetReceive());
-#endif
-
-
 #ifdef POST2PACHUBE
-    
     analogRead(A5);     // pH Level equation
     //delay(2000);
     float PHprobe = analogRead(A5);     // pH Level equation
@@ -648,8 +436,10 @@ void loop () {
     {
       format_pac_json();
     }
-#ifdef DEBUG 
-    Serial.println(str.buf); 
+#ifdef DEBUG
+    Serial.print("Buffer: ");
+    Serial.println(str.buf);
+    Serial.print("Attempt #");
     Serial.println(request_attempt);   
 #endif    // Print final json string to terminal
     ether.httpPost(PSTR(FEED_PAC), websitepac, PSTR(APIKEY_PAC), str.buf, callback_pac);	// Use POST to send string to pachube
@@ -691,6 +481,7 @@ void loop () {
 
 void printAddress(DeviceAddress deviceAddress)
 {
+  Serial.println("Device Addresses:");
   for (uint8_t i = 0; i < 8; i++)
   {
     if (deviceAddress[i] < 16) Serial.print("0");
