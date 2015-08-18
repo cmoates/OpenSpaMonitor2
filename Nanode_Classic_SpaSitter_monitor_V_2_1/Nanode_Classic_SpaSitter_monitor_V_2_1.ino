@@ -419,9 +419,7 @@ void loop () {
     if (dhcp_status){                          // on success print out ip's
       ether.printIp("IP:  ", ether.myip);
       ether.printIp("GW:  ", ether.gwip);  
-      //static byte dnsip[] = {8,8,8,8};  		// Setup to DNS server IP (8.8.8.8 is google public dns server)
-      static byte dnsip[] = {
-        192,168,1,1      };
+      static byte dnsip[] = {8,8,8,8};  		// Setup to DNS server IP (8.8.8.8 is google public dns server)
       ether.copyIp(ether.dnsip, dnsip);
       ether.printIp("DNS: ", ether.dnsip);          
     } 
