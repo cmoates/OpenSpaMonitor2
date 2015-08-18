@@ -194,7 +194,7 @@ static void callback_pac (byte status, word off, word len) {		// callback functi
 
   get_header_line(1,off);      // Get the http status code
 #ifdef DEBUG
-  Serial.println("HTTP status code from Xively: ");
+  Serial.print("HTTP status code from Xively: ");
   Serial.println(line_buf);    // Print out the http status code
 #endif
   //-----------------------------------------------------------------------------
@@ -249,6 +249,7 @@ static void getTemp(float temp) {
   temp = ( (data[1] << 8) + data[0] )*0.0625;
   //return true;
 
+  Serial.print("Temperature: ");
   Serial.println(temp);
 }
 #endif  */
@@ -282,7 +283,7 @@ void setup () {
   digitalWrite(redLED,HIGH);                        //turn off redLED
 #ifdef DEBUG
   Serial.begin(9600);
-  Serial.println("\n[multi webClient]");
+  Serial.println("\n[OpenSpaMonitor starting up]");
   sensors.begin(); // IC Default 9 bit. If you have troubles consider upping it 12. Ups the delay giving the IC more time to process the temperature measurement
 #endif
   error=0;
@@ -348,8 +349,8 @@ void loop () {
     Serial.println(dhcp_status);               // dhcp status
 #endif
     if (dhcp_status){                          // on success print out ip's
-      ether.printIp("IP:  ", ether.myip);
-      ether.printIp("GW:  ", ether.gwip);  
+      ether.printIp("IP: ", ether.myip);
+      ether.printIp("GW: ", ether.gwip);  
       //static byte dnsip[] = {8,8,8,8};  		// Setup to DNS server IP (8.8.8.8 is google public dns server)
       static byte dnsip[] = {
         192,168,1,1      };
@@ -473,7 +474,7 @@ void loop () {
   // Calculate temperature value
   temp = ( (data[1] << 8) + data[0] )*0.0625;
   //return true;
-  Serial.println("Temperature: ");
+  Serial.print("Temperature: ");
   Serial.println(temp);  
   Ftemp = (temp * 1.8) + 32;
          }
@@ -536,8 +537,10 @@ void loop () {
     {
       format_pac_json();
     }
-#ifdef DEBUG 
+#ifdef DEBUG
+    Serial.println("Buffer:");
     Serial.println(str.buf); 
+    Serial.print("Request attempt #");
     Serial.println(request_attempt);   
 #endif    // Print final json string to terminal
     ether.httpPost(PSTR(FEED_PAC), xivelyhost, PSTR(APIKEY_PAC), str.buf, callback_pac);	// Use POST to send string to Xively
