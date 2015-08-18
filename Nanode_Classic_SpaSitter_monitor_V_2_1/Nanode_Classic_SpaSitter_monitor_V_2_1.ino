@@ -145,7 +145,7 @@ static uint16_t localport = 8888;
 #endif
 
 #ifdef POST2PACHUBE   // Pachube is Cosm.com
-char websitepac[] PROGMEM = "api.pachube.com";
+const char websitepac[] PROGMEM = "api.pachube.com";
 static byte pachubeip[] = { 
   0,0,0,0 };
 static uint16_t pachubeport = 80;
