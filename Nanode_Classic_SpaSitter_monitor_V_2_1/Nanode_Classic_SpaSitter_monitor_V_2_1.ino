@@ -32,6 +32,14 @@ SpaSitter 2.0
 
 #define HTTP_TIMEOUT 10000
 
+// This is the information to connect to Xively (formerly Pachube, formerly Cosm)
+const char websitepac[] PROGMEM = "api.xively.com";
+static byte pachubeip[] = { 
+  0,0,0,0 };
+static uint16_t pachubeport = 80;
+// Pachube change these settings to match your own setup
+#define FEED_PAC  "/v2/feeds/YOUR_FEED_ID.csv?_method=put"    // YOUR_FEED_ID  from cosm.com
+#define APIKEY_PAC "X-PachubeApiKey: YOUR_API_KEY"    // Set YOUR_API_KEY to your cosm api write key
 
 #include <Wire.h>
 
@@ -116,16 +124,6 @@ NanodeMAC mac( mymac );
 
 byte Ethernet::buffer[600];
 static uint32_t timer;
-
-#ifdef POST2PACHUBE   // Pachube is Cosm.com
-const char websitepac[] PROGMEM = "api.pachube.com";
-static byte pachubeip[] = { 
-  0,0,0,0 };
-static uint16_t pachubeport = 80;
-// Pachube change these settings to match your own setup
-#define FEED_PAC  "/v2/feeds/YOUR_FEED_ID.csv?_method=put"		// YOUR_FEED_ID  from cosm.com
-#define APIKEY_PAC "X-PachubeApiKey: YOUR_API_KEY"		// Set YOUR_API_KEY to your cosm api write key
-#endif
 
 //--------------------------------------------------------------------------
 // Flow control varaiables
