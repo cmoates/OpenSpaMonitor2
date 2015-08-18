@@ -333,7 +333,7 @@ void loop () {
   // Putting DHCP setup and DNS lookup in the main loop allows for: 
   // powering nanode before ethernet is connected
   //-----------------------------------------------------------------------------------
-  if (ether.dhcpExpired()) dhcp_status = 0;    // if dhcp expired start request for new lease by changing status
+  //if (ether.dhcpExpired()) dhcp_status = 0;    // if dhcp expired start request for new lease by changing status
 
   if (!dhcp_status){
 #ifdef UNO
